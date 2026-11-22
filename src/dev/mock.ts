@@ -94,6 +94,19 @@ function route(url: URL): unknown {
   return {};
 }
 
+/** ?update zeigt ein verfügbares Update (für Layout-Tests). */
+function mockUpdate(): UpdateStatus {
+  const has = new URLSearchParams(location.search).has('update');
+  return has
+    ? {
+        state: 'available',
+        current: '0.1.0',
+        canInstall: true,
+        latest: { version: '0.2.0', url: '', size: 1, page: '', notes: '### Neu\n- **Medientasten** – Play/Pause, Vor und Zurück auf der Tastatur\n- **Update-Knopf** direkt in Betterfy' },
+      }
+    : { state: 'none', current: '0.1.0', canInstall: true, checkedAt: Date.now() };
+}
+
 export function installMock() {
   (window as unknown as { __auraMock: Window['aura'] }).__auraMock = {
     platform: 'win32',
@@ -113,6 +126,10 @@ export function installMock() {
     ],
     sendPlayerState: () => {},
     sendCommand: () => {},
+    setMediaKeys: () => {},
+    getUpdate: async () => mockUpdate(),
+    checkUpdate: async () => mockUpdate(),
+    installUpdate: async () => ({ ...mockUpdate(), state: 'downloading', progress: 42 }),
     on: () => () => {},
   };
   const realFetch = window.fetch.bind(window);

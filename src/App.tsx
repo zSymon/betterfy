@@ -5,6 +5,9 @@ import { Backdrop } from './components/Backdrop';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { WidgetBridge } from './components/WidgetBridge';
 import { PlaybackHelp } from './components/PlaybackHelp';
+import { MediaKeys } from './components/MediaKeys';
+import { UpdateDialog } from './components/UpdateDialog';
+import { UpdateProvider } from './state/update';
 import { Login } from './components/Login';
 import { NowPlayingPanel } from './components/NowPlayingPanel';
 import { PlayerBar } from './components/PlayerBar';
@@ -36,14 +39,16 @@ export default function App() {
   return (
     <DesignProvider>
       <UiProvider>
-        <PlayerProvider>
-          <Shell
-            onLogout={async () => {
-              await aura().logout();
-              setAuth('out');
-            }}
-          />
-        </PlayerProvider>
+        <UpdateProvider>
+          <PlayerProvider>
+            <Shell
+              onLogout={async () => {
+                await aura().logout();
+                setAuth('out');
+              }}
+            />
+          </PlayerProvider>
+        </UpdateProvider>
       </UiProvider>
     </DesignProvider>
   );
@@ -127,6 +132,7 @@ function Shell({ onLogout }: { onLogout: () => void }) {
       </ErrorBoundary>
       <TopBar onLogout={onLogout} />
       <WidgetBridge />
+      <MediaKeys />
 
       <div className={cx(LAYOUT, 'min-h-0 flex-1')}>
         {design.showLeft && (
@@ -159,6 +165,7 @@ function Shell({ onLogout }: { onLogout: () => void }) {
 
       <Stage />
       <PlaybackHelp />
+      <UpdateDialog />
 
       {/* Gleiches Raster wie das Layout → Player-Leiste sitzt exakt mittig über der Hauptspalte */}
       <div className={cx(LAYOUT, 'pointer-events-none absolute inset-x-0 bottom-5 z-40')}>

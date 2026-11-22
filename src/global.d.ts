@@ -3,6 +3,15 @@ export {};
 declare global {
   type NotesStyle = { stops: string[]; accent: string; opacity: number; radius: number; gloss: boolean; shadow: boolean; title?: string };
   type WidgetStyle = { mode: 'betterfy' } | ({ mode: 'notes' } & NotesStyle);
+  type UpdateStatus = {
+    state: 'idle' | 'checking' | 'none' | 'available' | 'downloading' | 'installing' | 'error';
+    current: string;
+    latest?: { version: string; url: string; size: number; notes: string; page: string };
+    progress?: number;
+    error?: string;
+    canInstall: boolean;
+    checkedAt?: number;
+  };
   type WidgetPrefs = { enabled: boolean; size: 'small' | 'medium' | 'large'; x?: number; y?: number; style?: WidgetStyle };
 
   interface Window {
@@ -21,7 +30,11 @@ declare global {
       notesStyles(): Promise<NotesStyle[]>;
       sendPlayerState(s: unknown): void;
       sendCommand(cmd: string, arg?: unknown): void;
-      on(channel: 'widget:changed' | 'prefs:changed' | 'player:state' | 'player:command', cb: (payload: any) => void): () => void;
+      setMediaKeys(on: boolean): void;
+      getUpdate(): Promise<UpdateStatus>;
+      checkUpdate(): Promise<UpdateStatus>;
+      installUpdate(): Promise<UpdateStatus>;
+      on(channel: 'widget:changed' | 'prefs:changed' | 'player:state' | 'player:command' | 'update:status', cb: (payload: any) => void): () => void;
     };
     onSpotifyWebPlaybackSDKReady?: () => void;
   }

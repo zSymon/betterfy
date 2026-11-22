@@ -40,6 +40,8 @@ Wer schon eine App hat, kann dich im Dashboard unter *User Management* mit deine
 - **Synchrone Songtexte** – mitlaufend, Klick auf eine Zeile springt dorthin; Großansicht mit <kbd>Strg</kbd>+<kbd>L</kbd>
 - **Desktop-Widget** – Mini-Player als Kachel auf dem Desktop (bleibt bei <kbd>Win</kbd>+<kbd>D</kbd> sichtbar), rastet im Raster von [Widget Notes](https://github.com/zSymon/widget-notes) ein und übernimmt per Pipette dessen Farben
 - **Bibliothek, Suche, Warteschlange, Geräte** – inklusive Spotify Connect: steuert auch Handy, Lautsprecher oder die offizielle App
+- **Medientasten** – Play/Pause, Vor und Zurück auf der Tastatur steuern Betterfy (auch wenn die Musik auf Handy oder Lautsprecher läuft); Song und Cover erscheinen im Windows-Lautstärke-Overlay
+- **Updates per Klick** – neue Versionen werden automatisch erkannt, oben rechts erscheint *Update*; installiert sich still und startet neu
 - **Tray** – läuft bei aktivem Widget im Hintergrund weiter, optional mit Windows starten
 
 ## Tastenkürzel
@@ -52,6 +54,7 @@ Wer schon eine App hat, kann dich im Dashboard unter *User Management* mit deine
 | <kbd>Strg</kbd> + <kbd>K</kbd> | Suche |
 | <kbd>Strg</kbd> + <kbd>L</kbd> | Großansicht mit Songtext |
 | <kbd>Alt</kbd> + <kbd>←</kbd>/<kbd>→</kbd>, Maus-Seitentasten | Zurück / Vor |
+| Medientasten ⏯ ⏭ ⏮ | Play/Pause, nächster / vorheriger Song |
 
 ## Gut zu wissen
 

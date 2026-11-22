@@ -1,4 +1,4 @@
-import { Check, Pipette, RotateCcw } from 'lucide-react';
+import { Check, Download, Loader2, Pipette, RefreshCw, RotateCcw } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { aura } from '../lib/bridge';
@@ -7,6 +7,7 @@ import { itemImage } from '../components/PlayerBar';
 import { cx } from '../lib/format';
 import { DEFAULT_DESIGN, FONTS, PRESETS, useDesign, type Background, type Density, type Design, type FontId } from '../state/design';
 import { usePlayer } from '../state/player';
+import { useUpdate } from '../state/update';
 
 const ACCENTS = ['#7ce8d2', '#5ce1ff', '#7c9bff', '#a78bfa', '#ff7ac6', '#ff8a5c', '#ffd166', '#c6f36b', '#e6ebf2'];
 
@@ -186,7 +187,61 @@ export function DesignView() {
       </Section>
 
       <WidgetSection />
+      <AboutSection />
     </div>
+  );
+}
+
+function AboutSection() {
+  const { status, check, setOpen } = useUpdate();
+  const [checking, setChecking] = useState(false);
+  if (!status) return null;
+  const s = status.state;
+  const busy = checking || s === 'checking';
+  const line =
+    s === 'available'
+      ? `Version ${status.latest?.version} ist verfügbar.`
+      : s === 'downloading' || s === 'installing'
+        ? `Update wird installiert … ${status.progress ?? 0} %`
+        : s === 'error'
+          ? `Prüfung fehlgeschlagen: ${status.error}`
+          : s === 'none'
+            ? 'Du hast die neueste Version.'
+            : 'Betterfy sucht automatisch alle paar Stunden nach Updates.';
+
+  return (
+    <Section title="Über Betterfy" index="09">
+      <div className="flex items-center justify-between gap-6 r-tile border border-line bg-white/[0.02] px-5 py-4">
+        <div className="flex items-center gap-4">
+          <div className="glow relative grid size-10 place-items-center rounded-full border-2 border-accent">
+            <div className="size-3 rounded-full bg-accent" />
+          </div>
+          <div>
+            <div className="text-[14px] font-medium">
+              Betterfy <span className="font-mono text-[12.5px] text-mute">v{status.current}</span>
+            </div>
+            <div className={cx('mt-0.5 text-[12.5px]', s === 'available' ? 'text-accent' : s === 'error' ? 'text-red-300' : 'text-mute')}>{line}</div>
+          </div>
+        </div>
+        {s === 'available' || s === 'downloading' || s === 'installing' ? (
+          <button onClick={() => setOpen(true)} className="glow flex h-9 shrink-0 items-center gap-2 rounded-full bg-accent px-4 text-[12.5px] font-semibold text-black">
+            <Download className="size-4" /> Update installieren
+          </button>
+        ) : (
+          <button
+            disabled={busy}
+            onClick={async () => {
+              setChecking(true);
+              const r = await check().finally(() => setChecking(false));
+              if (r.state === 'available') setOpen(true);
+            }}
+            className="flex h-9 shrink-0 items-center gap-2 rounded-full border border-line px-4 text-[12.5px] text-ink transition hover:border-white/25 disabled:opacity-60"
+          >
+            {busy ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />} Nach Updates suchen
+          </button>
+        )}
+      </div>
+    </Section>
   );
 }
 

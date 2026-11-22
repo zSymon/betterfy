@@ -1,8 +1,9 @@
 // Betterfy – Electron-Hauptprozess
 // Verantwortlich für: Fenster, Login (OAuth PKCE über Loopback), Token-Speicher, Widevine.
 const electron = require('electron');
-const { app, BrowserWindow, ipcMain, shell, protocol, net, safeStorage, session, Tray, Menu, nativeImage } = electron;
+const { app, BrowserWindow, ipcMain, shell, protocol, net, safeStorage, session, Tray, Menu, nativeImage, globalShortcut } = electron;
 const widget = require('./widget.cjs');
+const updater = require('./updater.cjs');
 const path = require('node:path');
 const fs = require('node:fs');
 const http = require('node:http');
@@ -256,6 +257,19 @@ function trayIcon() {
   return nativeImage.createFromBitmap(buf, { width: size, height: size });
 }
 
+function quitApp() {
+  quitting = true;
+  app.quit();
+}
+
+function updateMenuItem() {
+  const u = updater.get();
+  if (u.state === 'available' && u.latest) return { label: `Update auf v${u.latest.version} installieren`, click: () => updater.install(quitApp) };
+  if (u.state === 'downloading') return { label: `Update wird geladen … ${u.progress ?? 0} %`, enabled: false };
+  if (u.state === 'checking') return { label: 'Suche nach Updates …', enabled: false };
+  return { label: 'Nach Updates suchen', click: () => updater.check().then(() => focusWindow()) };
+}
+
 function updateTray() {
   if (!tray) return;
   const p = widgetPrefs();
@@ -285,13 +299,10 @@ function updateTray() {
             },
           ]
         : []),
-      {
-        label: 'Beenden',
-        click: () => {
-          quitting = true;
-          app.quit();
-        },
-      },
+      updateMenuItem(),
+      { label: `Version ${app.getVersion()}`, enabled: false },
+      { type: 'separator' },
+      { label: 'Beenden', click: quitApp },
     ]),
   );
 }
@@ -385,6 +396,34 @@ ipcMain.on('player:command', (_e, c) => {
 });
 ipcMain.handle('widget:set', (_e, patch) => setWidgetPrefs(patch || {}));
 ipcMain.handle('app:show', () => focusWindow());
+ipcMain.handle('update:get', () => updater.get());
+ipcMain.handle('update:check', () => updater.check());
+ipcMain.handle('update:install', () => updater.install(quitApp));
+
+// ---------- Medientasten der Tastatur ----------
+// Spielt Betterfy selbst, landen die Tasten über die Media Session (navigator.mediaSession) im Player.
+// Steuert Betterfy ein anderes Gerät (Handy, Spotify-App …), fangen wir die Tasten hier global ab.
+const MEDIA_KEYS = { MediaPlayPause: 'toggle', MediaNextTrack: 'next', MediaPreviousTrack: 'prev' };
+let mediaKeysOn = false;
+function setMediaKeys(on) {
+  if (on === mediaKeysOn) return;
+  mediaKeysOn = on;
+  for (const [accel, cmd] of Object.entries(MEDIA_KEYS)) {
+    if (!on) {
+      globalShortcut.unregister(accel);
+      continue;
+    }
+    try {
+      const ok = globalShortcut.register(accel, () => {
+        if (win && !win.isDestroyed()) win.webContents.send('player:command', { cmd });
+      });
+      if (!ok) console.warn(`[betterfy] Medientaste ${accel} ist schon belegt`);
+    } catch (e) {
+      console.warn(`[betterfy] Medientaste ${accel}:`, e);
+    }
+  }
+}
+ipcMain.on('media:keys', (_e, on) => setMediaKeys(Boolean(on)));
 ipcMain.handle('shell:open', (_e, url) => {
   if (/^https:\/\//.test(url) || url === 'spotify:') shell.openExternal(url);
 });
@@ -429,8 +468,13 @@ if (!process.env.AURA_SCREENSHOT && !app.requestSingleInstanceLock()) {
     createWindow();
     createTray();
     syncWidget();
+    updater.start((s) => {
+      broadcast('update:status', s);
+      updateTray();
+    });
   });
 
   app.on('before-quit', () => (quitting = true));
+  app.on('will-quit', () => globalShortcut.unregisterAll());
   app.on('window-all-closed', () => app.quit());
 }

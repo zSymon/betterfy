@@ -1,18 +1,21 @@
-import { ChevronLeft, ChevronRight, House, LogOut, Palette, Search, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, House, LogOut, Palette, RefreshCw, Search, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 import { cx, pickImage } from '../lib/format';
 import { useAsync, useClickOutside } from '../lib/hooks';
 import * as sp from '../lib/spotify';
 import { useUi } from '../state/ui';
+import { useUpdate } from '../state/update';
 import { Cover, IconButton } from './ui';
 
 export function TopBar({ onLogout }: { onLogout: () => void }) {
-  const { route, navigate, replace, back, forward, canBack, canForward } = useUi();
+  const { route, navigate, replace, back, forward, canBack, canForward, toast } = useUi();
   const inputRef = useRef<HTMLInputElement>(null);
   const [q, setQ] = useState(route.name === 'search' ? (route.q ?? '') : '');
   const { data: user } = useAsync(() => sp.me(), []);
   const [menu, setMenu] = useState(false);
+  const update = useUpdate();
+  const hasUpdate = update.status?.state === 'available' || update.status?.state === 'downloading';
   const menuRef = useRef<HTMLDivElement>(null);
   useClickOutside(menuRef, () => setMenu(false), menu);
 
@@ -98,6 +101,25 @@ export function TopBar({ onLogout }: { onLogout: () => void }) {
       </div>
 
       <div ref={menuRef} className="relative ml-auto flex items-center gap-2">
+        <AnimatePresence>
+          {hasUpdate && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              onClick={() => update.setOpen(true)}
+              title={`Betterfy ${update.status?.latest?.version} installieren`}
+              className="glow relative flex h-9 items-center gap-2 rounded-full bg-accent px-3.5 text-[12.5px] font-semibold text-black"
+            >
+              <Download className="size-4" />
+              Update
+              <span className="absolute -right-0.5 -top-0.5 flex size-2.5">
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-white opacity-70" />
+                <span className="relative inline-flex size-2.5 rounded-full bg-white" />
+              </span>
+            </motion.button>
+          )}
+        </AnimatePresence>
         <button
           onClick={() => navigate({ name: 'design' })}
           title="Design"
@@ -130,6 +152,21 @@ export function TopBar({ onLogout }: { onLogout: () => void }) {
                 className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-[13px] hover:bg-white/10"
               >
                 <Palette className="size-4 text-mute" /> Design anpassen
+              </button>
+              <button
+                onClick={async () => {
+                  setMenu(false);
+                  if (hasUpdate) return update.setOpen(true);
+                  const s = await update.check();
+                  if (s.state === 'available') update.setOpen(true);
+                  else if (s.state === 'error') toast(`Update-Prüfung fehlgeschlagen: ${s.error}`, 'error');
+                  else toast(`Betterfy ist aktuell (v${s.current})`);
+                }}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-[13px] hover:bg-white/10"
+              >
+                <RefreshCw className="size-4 text-mute" />
+                <span className="flex-1">{hasUpdate ? `Update auf ${update.status?.latest?.version}` : 'Nach Updates suchen'}</span>
+                <span className="font-mono text-[10.5px] text-faint">v{update.status?.current}</span>
               </button>
               <button
                 onClick={onLogout}
